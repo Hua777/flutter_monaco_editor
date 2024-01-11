@@ -1,5 +1,3 @@
-// ignore_for_file: constant_identifier_names
-
 library flutter_monaco_editor;
 
 // ignore: avoid_web_libraries_in_flutter
@@ -10,55 +8,6 @@ import 'dart:js';
 
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html';
-
-import 'package:flutter/foundation.dart';
-
-enum MonacoLanguagesCompletionItemKind {
-  Method(0),
-  Function(1),
-  Constructor(2),
-  Field(3),
-  Variable(4),
-  Class(5),
-  Struct(6),
-  Interface(7),
-  Module(8),
-  Property(9),
-  Event(10),
-  Operator(11),
-  Unit(12),
-  Value(13),
-  Constant(14),
-  Enum(15),
-  EnumMember(16),
-  Keyword(17),
-  Text(18),
-  Color(19),
-  File(20),
-  Reference(21),
-  Customcolor(22),
-  Folder(23),
-  TypeParameter(24),
-  User(25),
-  Issue(26),
-  Snippet(27),
-  ;
-
-  final int value;
-
-  const MonacoLanguagesCompletionItemKind(this.value);
-}
-
-enum MonacoLanguagesCompletionItemInsertTextRule {
-  None(0),
-  KeepWhitespace(1),
-  InsertAsSnippet(4),
-  ;
-
-  final int value;
-
-  const MonacoLanguagesCompletionItemInsertTextRule(this.value);
-}
 
 class MonacoJs {
   static final Map<JsObject?, MonacoJs> _instances = {};
@@ -76,9 +25,7 @@ class MonacoJs {
 
   static Future<void> _waitForGetting() async {
     if (_monaco == null) {
-      if (kDebugMode) {
-        print('[monaco] getting...');
-      }
+      print('[monaco] getting...');
       return Future.delayed(
         const Duration(seconds: 1),
         () {
@@ -89,9 +36,7 @@ class MonacoJs {
   }
 
   static Future<void> load() async {
-    if (kDebugMode) {
-      print('[monaco] preparing');
-    }
+    print('[monaco] preparing');
     final NodeValidatorBuilder htmlValidator = NodeValidatorBuilder.common()
       ..allowElement('link', attributes: ['rel', 'href', 'data-name'])
       ..allowElement('script', attributes: ['src']);
@@ -109,13 +54,9 @@ class MonacoJs {
     if (_require == null) {
       throw Exception('未能正确加载 Reuire');
     }
-    if (kDebugMode) {
-      print('[monaco] loading');
-    }
+    print('[monaco] loading');
     await _waitForGetting();
-    if (kDebugMode) {
-      print('[monaco] loaded');
-    }
+    print('[monaco] loaded');
   }
 
   ///
@@ -221,5 +162,24 @@ class MonacoJs {
       options['keybindings'] = keybindings;
     }
     _editorJs?.callMethod('addAction', [JsObject.jsify(options)]);
+  }
+
+  ///
+  /// 内容变更事件
+  ///
+  void onDidChangeModelContent(Function function) {
+    _editorJs?.callMethod('onDidChangeModelContent', [
+      allowInterop((e) {
+        function();
+      })
+    ]);
+  }
+
+  ///
+  /// 销毁
+  /// 
+  void dispose() {
+    _instances.remove(_editorJs);
+    _editorJs?.callMethod('dispose');
   }
 }

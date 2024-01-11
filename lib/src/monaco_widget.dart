@@ -79,6 +79,12 @@ class MonacoWidgetState extends State<MonacoWidget> {
   }
 
   @override
+  void dispose() {
+    monacoJs.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return HtmlElementView(
       viewType: _monacoId,
