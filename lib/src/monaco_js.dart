@@ -20,6 +20,7 @@ class MonacoJs {
   static JsObject? get _monacoLanguages => _monaco?['languages'];
   static JsFunction? get _monacoEditorCreate => _monacoEditor?['create'];
   static JsFunction? get _monacoLanguagesRegister => _monacoLanguages?['register'];
+  static JsFunction? get _monacoLanguagesSetLanguageConfiguration => _monacoLanguages?['setLanguageConfiguration'];
   static JsFunction? get _monacoLanguagesSetMonarchTokensProvider => _monacoLanguages?['setMonarchTokensProvider'];
   static JsFunction? get _monacoLanguagesRegisterCompletionItemProvider => _monacoLanguages?['registerCompletionItemProvider'];
 
@@ -60,7 +61,7 @@ class MonacoJs {
   }
 
   ///
-  /// 注册新的语言
+  /// Register information about a new language.
   ///
   static void languagesRegister(String id, {Map? options}) {
     options ??= {};
@@ -69,51 +70,43 @@ class MonacoJs {
   }
 
   ///
-  /// 对新的语言配置 Monarch
+  /// Set the editing configuration for a language.
+  ///
+  static void languagesSetLanguageConfiguration(String id, Map options) {
+    _monacoLanguagesSetLanguageConfiguration?.apply([id, JsObject.jsify(options)]);
+  }
+
+  ///
+  /// Set the tokens provider for a language (monarch implementation).
+  /// This tokenizer will be exclusive with a tokenizer set using setTokensProvider,
+  /// or with registerTokensProviderFactory,
+  /// but will work together with a tokens provider set using registerDocumentSemanticTokensProvider or registerDocumentRangeSemanticTokensProvider.
   ///
   static void languagesSetMonarchTokensProvider(String id, Map options) {
     _monacoLanguagesSetMonarchTokensProvider?.apply([id, JsObject.jsify(options)]);
   }
 
   ///
-  /// 对新的语言配置自动完成
+  /// Register a completion item provider (use by e.g. suggestions).
   ///
   static void languagesRegisterCompletionItemProvider(
     String id,
     List<Map> Function(
       JsObject model,
       JsObject position,
-      String beforeWord,
-      Map beforeWordRange,
-      String singleWord,
-      Map singleWordRange,
     ) provideCompletionItems, {
+    List<String>? triggerCharacters,
     Map? options,
   }) {
     options ??= {};
+    if (triggerCharacters != null) {
+      options['provideCompletionItems'] = triggerCharacters;
+    }
     options['provideCompletionItems'] = (JsObject model, JsObject position) {
-      var beforeWordRange = {
-        'startLineNumber': position['lineNumber'],
-        'endLineNumber': position['lineNumber'],
-        'startColumn': 0,
-        'endColumn': position['column'],
-      };
-      var beforeWord = model.callMethod('getValueInRange', [JsObject.jsify(beforeWordRange)]);
-      var singleWord = model.callMethod('getWordUntilPosition', [position]);
-      var singleWordRange = {
-        'startLineNumber': position['lineNumber'],
-        'endLineNumber': position['lineNumber'],
-        'startColumn': singleWord['startColumn'],
-        'endColumn': singleWord['endColumn'],
-      };
       return JsObject.jsify({
         'suggestions': provideCompletionItems(
           model,
           position,
-          beforeWord,
-          beforeWordRange,
-          singleWord['word'],
-          singleWordRange,
         )
       });
     };
@@ -176,8 +169,104 @@ class MonacoJs {
   }
 
   ///
+  /// Type the getModel() of IEditor.
+  ///
+  JsObject? getModel() {
+    return _editorJs?.callMethod('getModel');
+  }
+
+  ///
+  /// Returns the primary selection of the editor.
+  ///
+  JsObject? getSelection() {
+    return _editorJs?.callMethod('getSelection');
+  }
+
+  ///
+  /// Get a range covering the entire model.
+  ///
+  JsObject? getFullModelRange() {
+    return getModel()?.callMethod('getFullModelRange');
+  }
+
+  static (num, num, num, num) convertJsRangeToDart(JsObject? range) {
+    var startLineNumber = range?['startLineNumber'];
+    var startColumn = range?['startColumn'];
+    var endLineNumber = range?['endLineNumber'];
+    var endColumn = range?['endColumn'];
+    return (startLineNumber, startColumn, endLineNumber, endColumn);
+  }
+
+  ///
+  /// 现在是否选取着
+  ///
+  bool isSelected() {
+    var (a, b, c, d) = convertJsRangeToDart(getSelection());
+    return a != c || b != d;
+  }
+
+  ///
+  /// 获取选择的文字，或是全部文字
+  ///
+  String getSelectionValueOrValue() {
+    if (isSelected()) {
+      return getModel()?.callMethod('getValueInRange', [getSelection()]);
+    } else {
+      return getModel()?.callMethod('getValue');
+    }
+  }
+
+  ///
+  /// 设置全部文字
+  ///
+  void setValue(String value) {
+    var (a, b, c, d) = convertJsRangeToDart(getFullModelRange());
+    _editorJs?.callMethod(
+      'executeEdits',
+      [
+        'setSelectionValue',
+        JsObject.jsify([
+          {
+            'range': {
+              'startLineNumber': a,
+              'startColumn': b,
+              'endLineNumber': c,
+              'endColumn': d,
+            },
+            'text': value
+          },
+        ]),
+      ],
+    );
+  }
+
+  ///
+  /// 设置选中的文字
+  ///
+  void setSelectionValue(String value) {
+    var (a, b, c, d) = convertJsRangeToDart(getSelection());
+    _editorJs?.callMethod(
+      'executeEdits',
+      [
+        'setSelectionValue',
+        JsObject.jsify([
+          {
+            'range': {
+              'startLineNumber': a,
+              'startColumn': b,
+              'endLineNumber': c,
+              'endColumn': d,
+            },
+            'text': value
+          },
+        ]),
+      ],
+    );
+  }
+
+  ///
   /// 销毁
-  /// 
+  ///
   void dispose() {
     _instances.remove(_editorJs);
     _editorJs?.callMethod('dispose');

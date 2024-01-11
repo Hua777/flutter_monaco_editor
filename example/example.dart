@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_monaco_editor/flutter_monaco_editor.dart';
+import 'package:flutter_monaco_editor/flutter_monaco_ext_lang.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,38 +22,40 @@ class _PageState extends State<Page> {
   final GlobalKey<MonacoWidgetState> monacoKey = GlobalKey();
 
   void beforeMonacoLoad() {
-    // 自定义代码完成
-    MonacoJs.languagesRegisterCompletionItemProvider('mysql', (
-      model,
-      posisition,
-      beforeWord,
-      beforeWordRange,
-      singleWord,
-      singleWordRange,
-    ) {
-      return [
-        {
-          'label': "simpleText",
-          'kind': MonacoLanguagesCompletionItemKind.Text.value,
-          'insertText': "simpleText",
-          'range': singleWordRange,
-        }
-      ];
+    monacoLanguagesClickhouseSqlInstall(customerTableAndColumn: {
+      'my_table': ['my_column']
     });
   }
 
   void oafterMonacoLoad() {
-    // 自定义菜单
+    // 插入文字
     monacoKey.currentState?.monacoJs.addAction(
-      'diy-format',
-      '格式化',
+      'diy-insert-text',
+      '插入文字 (abcd)',
       (p0) {
-        print('格式化');
+        monacoKey.currentState?.monacoJs.setSelectionValue('abcd');
       },
-      keybindings: [2048 | 512 | 42], // Ctrl + Alt + L
+      keybindings: [MonacoKeyMod.CtrlCmd.value | MonacoKeyMod.Alt.value | MonacoKeyCode.KeyL.value], // Ctrl + Alt + L
       contextMenuGroupId: 'navigation',
       contextMenuOrder: 1.5,
     );
+
+    // 设置文字
+    monacoKey.currentState?.monacoJs.addAction(
+      'diy-set-text',
+      '覆盖文字 (hua777)',
+      (p0) {
+        monacoKey.currentState?.monacoJs.setValue('hua777');
+      },
+      keybindings: [MonacoKeyMod.CtrlCmd.value | MonacoKeyMod.Alt.value | MonacoKeyCode.KeyL.value], // Ctrl + Alt + L
+      contextMenuGroupId: 'navigation',
+      contextMenuOrder: 1.5,
+    );
+
+    // 内容变更事件
+    monacoKey.currentState?.monacoJs.onDidChangeModelContent(() {
+      print(monacoKey.currentState?.monacoJs.getSelectionValueOrValue());
+    });
   }
 
   @override
@@ -67,7 +70,7 @@ class _PageState extends State<Page> {
       height: 500,
       child: MonacoWidget(
         key: monacoKey,
-        language: 'mysql',
+        language: 'clickhouse-sql',
         theme: 'vs-dark',
         beforeLoad: beforeMonacoLoad,
         afterLoad: oafterMonacoLoad,
