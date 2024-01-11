@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_monaco_editor/flutter_monaco_editor.dart';
-import 'package:flutter_monaco_editor/flutter_monaco_ext_lang.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,11 +20,7 @@ class Page extends StatefulWidget {
 class _PageState extends State<Page> {
   final GlobalKey<MonacoWidgetState> monacoKey = GlobalKey();
 
-  void beforeMonacoLoad() {
-    monacoLanguagesClickhouseSqlInstall(customerTableAndColumn: {
-      'my_table': ['my_column']
-    });
-  }
+  void beforeMonacoLoad() {}
 
   void oafterMonacoLoad() {
     // 插入文字

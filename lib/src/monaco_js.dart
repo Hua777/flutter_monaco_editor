@@ -97,14 +97,12 @@ class MonacoJs {
     if (triggerCharacters != null) {
       options['triggerCharacters'] = triggerCharacters;
     }
-    options['provideCompletionItems'] = (JsObject model, JsObject position) => {
-          JsObject.jsify({
-            'suggestions': provideCompletionItems(
-              model,
-              position,
-            )
-          })
-        };
+    options['provideCompletionItems'] = (JsObject model, JsObject position, JsObject context, JsObject token) => JsObject.jsify({
+          'suggestions': provideCompletionItems(
+            model,
+            position,
+          )
+        });
     _monacoLanguagesRegisterCompletionItemProvider?.apply([id, JsObject.jsify(options)]);
   }
 
