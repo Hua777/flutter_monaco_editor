@@ -1231,13 +1231,13 @@ void monacoLanguagesClickhouseSqlInstall({
           suggestions.add({
             'label': tableName,
             'insertText': tableName,
-            'kind': MonacoLanguagesCompletionItemKind.Field,
+            'kind': MonacoLanguagesCompletionItemKind.Field.value,
           });
           for (var columnName in columnList) {
             suggestions.add({
               'label': columnName,
               'insertText': columnName,
-              'kind': MonacoLanguagesCompletionItemKind.Field,
+              'kind': MonacoLanguagesCompletionItemKind.Field.value,
             });
           }
         });

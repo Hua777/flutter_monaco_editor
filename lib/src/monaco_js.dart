@@ -14,7 +14,6 @@ class MonacoJs {
 
   JsObject? _editorJs;
 
-  static JsObject? get _require => context['require'];
   static JsObject? get _monaco => context['monaco'];
   static JsObject? get _monacoEditor => _monaco?['editor'];
   static JsObject? get _monacoLanguages => _monaco?['languages'];
@@ -45,16 +44,12 @@ class MonacoJs {
       'afterBegin',
       '''
 <link rel="stylesheet" data-name="vs/editor/editor.main" href="/vs/editor/editor.main.css">
-<script>require.config({ paths: { 'vs': '/vs' }});</script>
 <script src="/vs/loader.js"></script>
 <script src="/vs/editor/editor.main.nls.js"></script>
 <script src="/vs/editor/editor.main.js"></script>
   ''',
       validator: htmlValidator,
     );
-    if (_require == null) {
-      throw Exception('未能正确加载 Reuire');
-    }
     print('[monaco] loading');
     await _waitForGetting();
     print('[monaco] loaded');
@@ -100,16 +95,16 @@ class MonacoJs {
   }) {
     options ??= {};
     if (triggerCharacters != null) {
-      options['provideCompletionItems'] = triggerCharacters;
+      options['triggerCharacters'] = triggerCharacters;
     }
-    options['provideCompletionItems'] = (JsObject model, JsObject position) {
-      return JsObject.jsify({
-        'suggestions': provideCompletionItems(
-          model,
-          position,
-        )
-      });
-    };
+    options['provideCompletionItems'] = (JsObject model, JsObject position) => {
+          JsObject.jsify({
+            'suggestions': provideCompletionItems(
+              model,
+              position,
+            )
+          })
+        };
     _monacoLanguagesRegisterCompletionItemProvider?.apply([id, JsObject.jsify(options)]);
   }
 
@@ -129,7 +124,7 @@ class MonacoJs {
   void addAction(
     String id,
     String label,
-    Function(MonacoJs) run, {
+    Function run, {
     required String contextMenuGroupId,
     required num contextMenuOrder,
     Map? options,
@@ -140,9 +135,7 @@ class MonacoJs {
     options ??= {};
     options['id'] = id;
     options['label'] = label;
-    options['run'] = (editor) {
-      run(_instances[editor]!);
-    };
+    options['run'] = (editor) => run();
     options['contextMenuGroupId'] = contextMenuGroupId;
     options['contextMenuOrder'] = contextMenuOrder;
     if (precondition != null) {
@@ -206,13 +199,20 @@ class MonacoJs {
   }
 
   ///
+  /// 获取全部文字
+  ///
+  String getValue() {
+    return getModel()?.callMethod('getValue');
+  }
+
+  ///
   /// 获取选择的文字，或是全部文字
   ///
   String getSelectionValueOrValue() {
     if (isSelected()) {
       return getModel()?.callMethod('getValueInRange', [getSelection()]);
     } else {
-      return getModel()?.callMethod('getValue');
+      return getValue();
     }
   }
 
@@ -262,6 +262,15 @@ class MonacoJs {
         ]),
       ],
     );
+  }
+
+  ///
+  /// Instructs the editor to remeasure its container. This method should be called when the container of the editor gets resized.
+  /// If a dimension is passed in, the passed in value will be used.
+  /// By default, this will also render the editor immediately. If you prefer to delay rendering to the next animation frame, use postponeRendering == true.
+  ///
+  void layout() {
+    _editorJs?.callMethod('layout');
   }
 
   ///
